@@ -5,7 +5,10 @@ class User {
   final String password;
   final String grade;
 
-  User({this.id, required this.name, required this.password, required this.grade});
+  User({this.id, 
+  required this.name, 
+  required this.password, 
+  required this.grade});
 
   Map<String, dynamic> toMap() {
     return {

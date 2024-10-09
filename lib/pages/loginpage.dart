@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'adminpage.dart';
 import 'homepage.dart';
 import 'db/database_helper.dart';
+import 'package:biblioteca/model/user.dart';  // Importa el modelo de usuario
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -28,18 +29,35 @@ class LoginPageState extends State<LoginPage> {
 
     // Verificar si el usuario es el "master" con credenciales fijas
     if (username == 'master' && password == 'master') {
+      // Crear un objeto User para el "master"
+      final currentUser = User(
+        name: username,
+        password: password,  // Asegúrate de que tu modelo de usuario maneje esto
+        grade: 'master',     // Asigna un grado según tu lógica
+      );
+
       // Redirigir al usuario a la página de administración
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => const AdminPage(),
+          builder: (context) => AdminPage(currentUser: currentUser),
         ),
       );
       return;
     }
 
     // Verificar en la base de datos SQLite
-    var user = await DatabaseHelper().getUsers(username, password);
+    var users = await DatabaseHelper().getUsers(username, password);
+
+    if (users.isEmpty) {
+      // Manejar caso en el que no se encuentra el usuario
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Usuario o contraseña incorrectos')),
+      );
+      return;
+    }
+
+    var currentUser = users.first; // Suponiendo que el método devuelve una lista de usuarios
 
     if (!mounted) return; // Verificar que el widget siga montado antes de usar el contexto.
 
@@ -47,10 +65,10 @@ class LoginPageState extends State<LoginPage> {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (context) => HomePage(user: user),
+        builder: (context) => HomePage(user: currentUser),
       ),
     );
-    }
+  }
 
   @override
   Widget build(BuildContext context) {
