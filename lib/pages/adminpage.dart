@@ -9,7 +9,7 @@ import 'package:biblioteca/model/user.dart'; // Importar el modelo de usuario
 import 'package:biblioteca/model/grades.dart'; // Archivo que contiene la lista de grados
 
 class AdminPage extends StatefulWidget {
-  final User currentUser; // Campo para el usuario actual
+  final Users currentUser; // Campo para el usuario actual
 
   const AdminPage({super.key, required this.currentUser}); // Constructor actualizado
 
@@ -18,7 +18,7 @@ class AdminPage extends StatefulWidget {
 }
 
 class AdminPageState extends State<AdminPage> {
-  List<User> _users = [];
+  List<Users> _users = [];
 
   @override
   void initState() {
@@ -183,7 +183,7 @@ class AdminPageState extends State<AdminPage> {
                         passwordController.text.isNotEmpty &&
                         selectedGrade != null) {
                       // Crear un nuevo usuario
-                      final newUser = User(
+                      final newUser = Users(
                         name: userController.text, // Usamos 'name' como 'Usuario'
                         password: passwordController.text, // Guardar la contraseña
                         grade: selectedGrade!, // Grado seleccionado
@@ -226,7 +226,7 @@ class AdminPageState extends State<AdminPage> {
     );
   }
 
-  void _showEditUserDialog(BuildContext context, User user) {
+  void _showEditUserDialog(BuildContext context, Users user) {
     final userController = TextEditingController(text: user.name);
     final passwordController = TextEditingController(text: user.password);
     String? selectedGrade = user.grade;
@@ -280,7 +280,7 @@ class AdminPageState extends State<AdminPage> {
                         passwordController.text.isNotEmpty &&
                         selectedGrade != null) {
                       // Actualizar usuario
-                      final updatedUser = User(
+                      final updatedUser = Users(
                         id: user.id, // Asegúrate de que tienes un campo id en tu modelo User
                         name: userController.text,
                         password: passwordController.text,

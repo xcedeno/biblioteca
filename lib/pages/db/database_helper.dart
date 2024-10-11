@@ -28,59 +28,64 @@ class DatabaseHelper {
       version: 1,
       onCreate: (db, version) async {
         await db.execute('''
-          CREATE TABLE users(
+          CREATE TABLE usuarios(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT,
             password TEXT,
             grade TEXT
           )
         ''');
-         print('Tabla "users" creada'); // Confirmar que se crea la tabla
+         print('Tabla "usuarios" creada'); // Confirmar que se crea la tabla
       },
     );
   }
 
-Future<void> insertUser(User user) async {
+Future<int> insertUser(Users user) async {
   final db = await database;
-  
-  try {
-    await db.insert(
-      'users', 
-      user.toMap(),
-      conflictAlgorithm: ConflictAlgorithm.replace
-    );
-    
-    print("Usuario insertado correctamente");
-  } catch (e) {
-    print("Error al insertar usuario: $e");
-    throw Exception('No se pudo insertar el usuario');
-    
-  }
-  
+  int result = await db.insert('users', user.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace);
+  print('Usuario insertado con ID: $result');
+  return result;
 }
 
-  Future<List<User>> getUsers(String? searchQuery, String? grade) async {
+
+Future<List<Users>> getUsers(String? searchQuery, String? grade) async {
   final db = await database;
   
   List<Map<String, dynamic>> maps;
-  if (searchQuery != null && searchQuery.isNotEmpty) {
+
+  // Verifica si ambos searchQuery y grade no son nulos y no están vacíos
+  if (searchQuery != null && searchQuery.isNotEmpty && grade != null && grade.isNotEmpty) {
+    maps = await db.query(
+      'users',
+      where: 'name LIKE ? AND grade = ?',
+      whereArgs: ['%$searchQuery%', grade],
+    );
+  }
+  // Verifica si solo searchQuery no es nulo
+  else if (searchQuery != null && searchQuery.isNotEmpty) {
     maps = await db.query(
       'users',
       where: 'name LIKE ?',
       whereArgs: ['%$searchQuery%'],
     );
-  } else if (grade != null && grade.isNotEmpty) {
+  }
+  // Verifica si solo grade no es nulo
+  else if (grade != null && grade.isNotEmpty) {
     maps = await db.query(
       'users',
       where: 'grade = ?',
       whereArgs: [grade],
     );
-  } else {
-    maps = await db.query('users'); // Ensure it's 'users' not 'usuarios'
+  }
+  // Si ninguno es proporcionado, trae todos los usuarios
+  else {
+    maps = await db.query('users');
   }
 
+  // Convierte los resultados en una lista de objetos User
   return List.generate(maps.length, (i) {
-    return User(
+    return Users(
       id: maps[i]['id'],
       name: maps[i]['name'],
       password: maps[i]['password'],
@@ -89,9 +94,19 @@ Future<void> insertUser(User user) async {
   });
 }
 
+// Llamar esta función y mostrar los usuarios en la consola
+void mostrarUsuarios() async {
+  String searchQuery = 'Juan'; // Por ejemplo, para buscar por nombre
+  String grade = 'Aprendiz';   // O para buscar por grado
+  List<Users> usuarios = await getUsers(searchQuery, grade); // Pasa los filtros
+  for (var user in usuarios) {
+    print('ID: ${user.id}, Nombre: ${user.name}, Grado: ${user.grade}');
+  }
+}
 
 
-  Future<void> updateUser(User user) async {
+
+  Future<void> updateUser(Users user) async {
     final db = await database;
     await db.update('users', user.toMap(), where: 'id = ?', whereArgs: [user.id]);
   }

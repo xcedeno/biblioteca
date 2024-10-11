@@ -1,9 +1,8 @@
-// ignore: file_names
 import 'package:flutter/material.dart';
-import 'adminpage.dart';
-import 'homepage.dart';
-import 'db/database_helper.dart';
-import 'package:biblioteca/model/user.dart';  // Importa el modelo de usuario
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:biblioteca/pages/adminpage.dart';
+import 'package:biblioteca/pages/homepage.dart';
+import 'package:biblioteca/model/user.dart';  // Asegúrate de importar tu modelo de usuario
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -27,47 +26,71 @@ class LoginPageState extends State<LoginPage> {
     var username = _usernameController.text.trim();
     var password = _passwordController.text.trim();
 
-    // Verificar si el usuario es el "master" con credenciales fijas
-    if (username == 'master' && password == 'master') {
-      // Crear un objeto User para el "master"
-      final currentUser = User(
-        name: username,
-        password: password,  // Asegúrate de que tu modelo de usuario maneje esto
-        grade: 'master',     // Asigna un grado según tu lógica
+    try {
+      // Autenticación usando Supabase
+      final response = await Supabase.instance.client.auth.signInWithPassword(
+        email: username,
+        password: password,
       );
 
-      // Redirigir al usuario a la página de administración
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => AdminPage(currentUser: currentUser),
-        ),
+      if (response.error != null) {
+        // Mostrar mensaje de error si las credenciales son incorrectas
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(response.error!.message)),
+        );
+        return;
+      }
+
+      // Obtener información adicional del usuario
+      final userData = await Supabase.instance.client
+          .from('users') // Cambia 'users' al nombre de tu tabla si es diferente
+          .select()
+          .eq('email', username)
+          .single();
+
+      // Verificar si se encontraron datos del usuario
+      // ignore: unrelated_type_equality_checks
+      if (userData == false) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Usuario no encontrado.')),
+        );
+        return;
+      }
+
+      // Asegúrate de que los campos existen
+      if (userData['name'] == null || userData['grade'] == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Datos de usuario incompletos.')),
+        );
+        return;
+      }
+
+      // Crear la instancia de User con los datos obtenidos
+      final currentUser = Users(
+        name: userData['name'], // Asegúrate de que tu tabla tenga este campo
+        password: password,      // Considera no guardar la contraseña directamente
+        grade: userData['grade'], // Asegúrate de que este campo exista en tu tabla
       );
-      return;
-    }
 
-    // Verificar en la base de datos SQLite
-    var users = await DatabaseHelper().getUsers(username, password);
-
-    if (users.isEmpty) {
-      // Manejar caso en el que no se encuentra el usuario
+      // Redirigir a la página de inicio del usuario
+      if (currentUser.grade == 'master') {
+        // Redirigir al AdminPage si el grado es 'master'
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => AdminPage(currentUser: currentUser)),
+        );
+      } else {
+        // Redirigir al HomePage para otros grados
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => HomePage(user: currentUser)),
+        );
+      }
+    } catch (error) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Usuario o contraseña incorrectos')),
+        SnackBar(content: Text('Error de inicio de sesión: $error')),
       );
-      return;
     }
-
-    var currentUser = users.first; // Suponiendo que el método devuelve una lista de usuarios
-
-    if (!mounted) return; // Verificar que el widget siga montado antes de usar el contexto.
-
-    // Redirigir a la página de inicio del usuario
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => HomePage(user: currentUser),
-      ),
-    );
   }
 
   @override
@@ -97,4 +120,8 @@ class LoginPageState extends State<LoginPage> {
       ),
     );
   }
+}
+
+extension on AuthResponse {
+  get error => null;
 }
